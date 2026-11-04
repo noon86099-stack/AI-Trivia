@@ -11,6 +11,58 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /trivia/question:
+    get:
+      operationId: getTriviaQuestion
+      tags: [trivia]
+      summary: Fetch a real shuffled multiple-choice question
+      responses:
+        "200":
+          description: Question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TriviaQuestion"
+        default:
+          $ref: "#/components/responses/FriendlyError"
+  /trivia/answer:
+    post:
+      operationId: submitTriviaAnswer
+      tags: [trivia]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnswerInput"
+      responses:
+        "200":
+          description: Answer checked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerResult"
+        default:
+          $ref: "#/components/responses/FriendlyError"
+  /trivia/explanation:
+    post:
+      operationId: explainTriviaAnswer
+      tags: [trivia]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnswerInput"
+      responses:
+        "200":
+          description: AI explanation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Explanation"
+        default:
+          $ref: "#/components/responses/FriendlyError"
   /healthz:
     get:
       operationId: healthCheck
@@ -25,7 +77,58 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 components:
+  responses:
+    FriendlyError:
+      description: Friendly error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/FriendlyError"
   schemas:
+    FriendlyError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code: { type: string }
+        retryAfter: { type: integer }
+    TriviaOption:
+      type: object
+      required: [id, text]
+      properties:
+        id: { type: string }
+        text: { type: string }
+    TriviaQuestion:
+      type: object
+      required: [id, question, category, difficulty, options]
+      properties:
+        id: { type: string }
+        question: { type: string }
+        category: { type: string }
+        difficulty: { type: string, enum: [easy, medium, hard] }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/TriviaOption" }
+    AnswerInput:
+      type: object
+      required: [questionId, answerId]
+      properties:
+        questionId: { type: string, minLength: 1, maxLength: 100 }
+        answerId: { type: string, minLength: 1, maxLength: 100 }
+    AnswerResult:
+      type: object
+      required: [correct, correctAnswerId, correctAnswer, selectedAnswer]
+      properties:
+        correct: { type: boolean }
+        correctAnswerId: { type: string }
+        correctAnswer: { type: string }
+        selectedAnswer: { type: string }
+    Explanation:
+      type: object
+      required: [explanation, model]
+      properties:
+        explanation: { type: string }
+        model: { type: string }
     HealthStatus:
       type: object
       properties:

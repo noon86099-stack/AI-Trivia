@@ -1,0 +1,1 @@
+- [Dependency export validation](dependency-export-validation.md) — external type declarations can accept exports that the installed runtime package does not provide.

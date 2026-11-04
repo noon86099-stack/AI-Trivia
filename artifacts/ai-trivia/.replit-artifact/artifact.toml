@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AI Trivia"
+description = "A mobile-friendly trivia game with real Open Trivia DB questions, score tracking, and friendly AI explanations powered securely by OpenRouter."
+version = "1.0.0"
+id = "artifacts/ai-trivia"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23382
+
+[services.development]
+run = "pnpm --filter @workspace/ai-trivia run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-trivia", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-trivia/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23382"
+BASE_PATH = "/"
