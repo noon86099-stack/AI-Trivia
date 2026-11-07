@@ -44,7 +44,19 @@ router.use("/trivia", (_req, res, next) => { res.setHeader("Cache-Control", "no-
 router.get("/trivia/question", async (req, res): Promise<void> => {
   try {
     limit(req, false);
-    res.json(GetTriviaQuestionResponse.parse(await loadQuestion()));
+    const categoryRaw = req.query.category;
+    const difficultyRaw = req.query.difficulty;
+    const category = categoryRaw === undefined ? undefined : Number(categoryRaw);
+    if (
+      (categoryRaw !== undefined && (typeof categoryRaw !== "string" || !Number.isInteger(category) || category! < 9 || category! > 32)) ||
+      (difficultyRaw !== undefined && (typeof difficultyRaw !== "string" || !["easy", "medium", "hard"].includes(difficultyRaw)))
+    ) {
+      throw new TriviaError(400, "INVALID_FILTER", "Choose a valid question category and difficulty.");
+    }
+    res.json(GetTriviaQuestionResponse.parse(await loadQuestion({
+      ...(category !== undefined ? { category } : {}),
+      ...(typeof difficultyRaw === "string" ? { difficulty: difficultyRaw as "easy" | "medium" | "hard" } : {}),
+    })));
   } catch (error) { fail(error, req, res); }
 });
 

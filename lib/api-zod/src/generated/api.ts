@@ -9,8 +9,18 @@ import * as zod from 'zod';
 
 
 /**
- * @summary Fetch a real shuffled multiple-choice question
+ * @summary Fetch a filtered shuffled multiple-choice question
  */
+export const getTriviaQuestionQueryCategoryMin = 9;
+export const getTriviaQuestionQueryCategoryMax = 32;
+
+
+
+export const GetTriviaQuestionQueryParams = zod.object({
+  "category": zod.coerce.number().int().min(getTriviaQuestionQueryCategoryMin).max(getTriviaQuestionQueryCategoryMax).optional().describe('Open Trivia Database category ID'),
+  "difficulty": zod.enum(['easy', 'medium', 'hard']).optional()
+})
+
 export const GetTriviaQuestionResponse = zod.object({
   "id": zod.string(),
   "question": zod.string(),

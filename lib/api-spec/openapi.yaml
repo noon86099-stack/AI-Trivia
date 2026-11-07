@@ -15,7 +15,22 @@ paths:
     get:
       operationId: getTriviaQuestion
       tags: [trivia]
-      summary: Fetch a real shuffled multiple-choice question
+      summary: Fetch a filtered shuffled multiple-choice question
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 9
+            maximum: 32
+          description: Open Trivia Database category ID
+        - name: difficulty
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [easy, medium, hard]
       responses:
         "200":
           description: Question

@@ -20,18 +20,22 @@ const upstreamQuestion = z.object({
 });
 
 type Question = TriviaPayload;
+type QuestionFilters = { category?: number; difficulty?: "easy" | "medium" | "hard" };
 const pendingExplanations = new Map<string, Promise<string>>();
 let triviaAvailableAt = 0;
 const questionTTL = 2 * 60 * 60 * 1000;
 
-export async function loadQuestion(fetcher: typeof fetch = fetch): Promise<Question> {
+export async function loadQuestion(filters: QuestionFilters = {}, fetcher: typeof fetch = fetch): Promise<Question> {
   const now = Date.now();
   if (now < triviaAvailableAt) {
     const wait = Math.ceil((triviaAvailableAt - now) / 1000);
     throw new TriviaError(429, "RATE_LIMITED", `The question library needs a short pause. Try again in ${wait} seconds.`, wait);
   }
   triviaAvailableAt = now + 5100;
-  const raw = await fetchJson("https://opentdb.com/api.php?amount=1&type=multiple", {}, 15000, "trivia", fetcher);
+  const params = new URLSearchParams({ amount: "1", type: "multiple" });
+  if (filters.category !== undefined) params.set("category", String(filters.category));
+  if (filters.difficulty) params.set("difficulty", filters.difficulty);
+  const raw = await fetchJson(`https://opentdb.com/api.php?${params.toString()}`, {}, 15000, "trivia", fetcher);
   const parsed = upstreamQuestion.safeParse(raw);
   if (!parsed.success) throw new TriviaError(502, "INVALID_RESPONSE", "That question didn't arrive correctly. Please try another.");
   if (parsed.data.response_code === 5) {

@@ -11,6 +11,8 @@ export * from './answerResult';
 export * from './explanation';
 export * from './friendlyError';
 export * from './friendlyErrorResponse';
+export * from './getTriviaQuestionDifficulty';
+export * from './getTriviaQuestionParams';
 export * from './healthStatus';
 export * from './triviaOption';
 export * from './triviaQuestion';

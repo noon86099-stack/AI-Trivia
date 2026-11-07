@@ -67,3 +67,22 @@ export interface HealthStatus {
  */
 export type FriendlyErrorResponse = FriendlyError;
 
+export type GetTriviaQuestionParams = {
+/**
+ * Open Trivia Database category ID
+ * @minimum 9
+ * @maximum 32
+ */
+category?: number;
+difficulty?: GetTriviaQuestionDifficulty;
+};
+
+export type GetTriviaQuestionDifficulty = typeof GetTriviaQuestionDifficulty[keyof typeof GetTriviaQuestionDifficulty];
+
+
+export const GetTriviaQuestionDifficulty = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+} as const;
+

@@ -29,6 +29,7 @@ import type {
   AnswerResult,
   Explanation,
   FriendlyErrorResponse,
+  GetTriviaQuestionParams,
   HealthStatus,
   TriviaQuestion
 } from './api.schemas';
@@ -60,20 +61,27 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export const getGetTriviaQuestionUrl = () => {
+export const getGetTriviaQuestionUrl = (params?: GetTriviaQuestionParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/trivia/question`
+  return stringifiedParams.length > 0 ? `/api/trivia/question?${stringifiedParams}` : `/api/trivia/question`
 }
 
 /**
- * @summary Fetch a real shuffled multiple-choice question
+ * @summary Fetch a filtered shuffled multiple-choice question
  */
-export const getTriviaQuestion = async ( options?: Parameters<typeof customFetch>[1]): Promise<TriviaQuestion> => {
+export const getTriviaQuestion = async (params?: GetTriviaQuestionParams, options?: Parameters<typeof customFetch>[1]): Promise<TriviaQuestion> => {
 
-  return customFetch<TriviaQuestion>(getGetTriviaQuestionUrl(),
+  return customFetch<TriviaQuestion>(getGetTriviaQuestionUrl(params),
   {
     ...options,
     method: 'GET'
@@ -86,23 +94,23 @@ export const getTriviaQuestion = async ( options?: Parameters<typeof customFetch
 
 
 
-export const getGetTriviaQuestionQueryKey = () => {
+export const getGetTriviaQuestionQueryKey = (params?: GetTriviaQuestionParams,) => {
     return [
-    `/api/trivia/question`
+    `/api/trivia/question`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetTriviaQuestionQueryOptions = <TData = Awaited<ReturnType<typeof getTriviaQuestion>>, TError = ErrorType<FriendlyErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetTriviaQuestionQueryOptions = <TData = Awaited<ReturnType<typeof getTriviaQuestion>>, TError = ErrorType<FriendlyErrorResponse>>(params?: GetTriviaQuestionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetTriviaQuestionQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetTriviaQuestionQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTriviaQuestion>>> = ({ signal }) => getTriviaQuestion({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTriviaQuestion>>> = ({ signal }) => getTriviaQuestion(params, { signal, ...requestOptions });
 
 
 
@@ -116,7 +124,7 @@ export type GetTriviaQuestionQueryError = ErrorType<FriendlyErrorResponse>
 
 
 export function useGetTriviaQuestion<TData = Awaited<ReturnType<typeof getTriviaQuestion>>, TError = ErrorType<FriendlyErrorResponse>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>> & Pick<
+ params: undefined |  GetTriviaQuestionParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getTriviaQuestion>>,
           TError,
@@ -126,7 +134,7 @@ export function useGetTriviaQuestion<TData = Awaited<ReturnType<typeof getTrivia
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetTriviaQuestion<TData = Awaited<ReturnType<typeof getTriviaQuestion>>, TError = ErrorType<FriendlyErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>> & Pick<
+ params?: GetTriviaQuestionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getTriviaQuestion>>,
           TError,
@@ -136,19 +144,19 @@ export function useGetTriviaQuestion<TData = Awaited<ReturnType<typeof getTrivia
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetTriviaQuestion<TData = Awaited<ReturnType<typeof getTriviaQuestion>>, TError = ErrorType<FriendlyErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: GetTriviaQuestionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Fetch a real shuffled multiple-choice question
+ * @summary Fetch a filtered shuffled multiple-choice question
  */
 
 export function useGetTriviaQuestion<TData = Awaited<ReturnType<typeof getTriviaQuestion>>, TError = ErrorType<FriendlyErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: GetTriviaQuestionParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTriviaQuestion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetTriviaQuestionQueryOptions(options)
+  const queryOptions = getGetTriviaQuestionQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

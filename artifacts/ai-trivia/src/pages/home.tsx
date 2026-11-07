@@ -42,6 +42,32 @@ function errInfo(err: unknown): { message: string; retryAfter?: number; code?: s
 }
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const QUESTION_CATEGORIES = [
+  { id: 9, label: 'General Knowledge' },
+  { id: 10, label: 'Entertainment: Books' },
+  { id: 11, label: 'Film' },
+  { id: 12, label: 'Music' },
+  { id: 13, label: 'Musicals & Theatres' },
+  { id: 14, label: 'Television' },
+  { id: 15, label: 'Video Games' },
+  { id: 16, label: 'Board Games' },
+  { id: 17, label: 'Science & Nature' },
+  { id: 18, label: 'Science: Computers' },
+  { id: 19, label: 'Science: Mathematics' },
+  { id: 20, label: 'Mythology' },
+  { id: 21, label: 'Sports' },
+  { id: 22, label: 'Geography' },
+  { id: 23, label: 'History' },
+  { id: 24, label: 'Politics' },
+  { id: 25, label: 'Art' },
+  { id: 26, label: 'Celebrities' },
+  { id: 27, label: 'Animals' },
+  { id: 28, label: 'Vehicles' },
+  { id: 29, label: 'Entertainment: Comics' },
+  { id: 30, label: 'Science: Gadgets' },
+  { id: 31, label: 'Japanese Anime & Manga' },
+  { id: 32, label: 'Cartoon & Animations' },
+] as const;
 const DIFF: Record<string, { label: string; dots: number }> = {
   easy: { label: 'Easy', dots: 1 },
   medium: { label: 'Medium', dots: 2 },
@@ -131,9 +157,17 @@ function HowItWorks() {
 
 export default function Home() {
   const queryClient = useQueryClient();
-  const question = useGetTriviaQuestion({
+  const [category, setCategory] = useState('all');
+  const [difficulty, setDifficulty] = useState('any');
+  const [started, setStarted] = useState(false);
+  const questionParams = {
+    ...(category !== 'all' ? { category: Number(category) } : {}),
+    ...(difficulty !== 'any' ? { difficulty: difficulty as 'easy' | 'medium' | 'hard' } : {}),
+  };
+  const question = useGetTriviaQuestion(questionParams, {
     query: {
-      queryKey: getGetTriviaQuestionQueryKey(),
+      queryKey: getGetTriviaQuestionQueryKey(questionParams),
+      enabled: started,
       retry: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -154,13 +188,30 @@ export default function Home() {
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(score)); }, [score]);
 
   const isFetchingQ = question.isFetching;
-  const q: TriviaQuestion | undefined = !isFetchingQ && !question.isError ? question.data : undefined;
+  const q: TriviaQuestion | undefined = started && !isFetchingQ && !question.isError ? question.data : undefined;
 
   useEffect(() => { if (q) headingRef.current?.focus({ preventScroll: true }); }, [q?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runExplain = useCallback((questionId: string, answerId: string) => {
     explain.mutate({ data: { questionId, answerId } });
   }, [explain.mutate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startQuiz = () => {
+    queryClient.removeQueries({ queryKey: getGetTriviaQuestionQueryKey(questionParams), exact: true });
+    setSelected(null);
+    setResult(null);
+    submit.reset();
+    explain.reset();
+    setStarted(true);
+  };
+
+  const changeQuiz = () => {
+    setStarted(false);
+    setSelected(null);
+    setResult(null);
+    submit.reset();
+    explain.reset();
+  };
 
   const check = () => {
     if (!q || !selected || result || submit.isPending) return;
@@ -189,7 +240,7 @@ export default function Home() {
     setResult(null);
     submit.reset();
     explain.reset();
-    void queryClient.refetchQueries({ queryKey: getGetTriviaQuestionQueryKey(), exact: true });
+    void question.refetch();
   };
   const freshQuestion = () => { next(); };
 
@@ -241,7 +292,55 @@ export default function Home() {
       <main id="quiz" className="mx-auto grid max-w-5xl gap-6 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[1fr_280px] lg:gap-8">
         <section aria-labelledby="question-heading" className="relative">
           <div className="relative rounded-[28px] border-2 border-foreground/85 bg-card p-5 shadow-[6px_6px_0_0_hsl(var(--foreground)/.85)] sm:p-8">
-            {isFetchingQ ? (
+            {!started ? (
+              <div className="anim-rise py-2">
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+                  <Sparkles className="h-5 w-5" aria-hidden />
+                </div>
+                <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Pick your challenge</h1>
+                <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+                  Choose a topic and difficulty. You can change them any time between rounds.
+                </p>
+                <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-semibold" htmlFor="trivia-category">
+                    Category
+                    <select
+                      id="trivia-category"
+                      data-testid="select-category"
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                      className="min-h-12 w-full rounded-xl border-2 border-border bg-background px-3 text-base font-medium text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+                    >
+                      <option value="all">All categories</option>
+                      {QUESTION_CATEGORIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm font-semibold" htmlFor="trivia-difficulty">
+                    Difficulty
+                    <select
+                      id="trivia-difficulty"
+                      data-testid="select-difficulty"
+                      value={difficulty}
+                      onChange={(event) => setDifficulty(event.target.value)}
+                      className="min-h-12 w-full rounded-xl border-2 border-border bg-background px-3 text-base font-medium text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+                    >
+                      <option value="any">Any difficulty</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={startQuiz}
+                  data-testid="button-start-quiz"
+                  className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-3.5 text-base font-semibold text-primary-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40 sm:w-auto"
+                >
+                  Start quiz <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            ) : isFetchingQ ? (
               <QuestionSkeleton />
             ) : question.isError ? (
               <ErrorPanel title="The question didn't arrive." err={question.error} onRetry={() => void question.refetch()} retryLabel="Fetch a question" testId="error-question" />
@@ -255,6 +354,14 @@ export default function Home() {
                       {diff.label}
                     </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={changeQuiz}
+                    data-testid="button-change-quiz"
+                    className="ml-auto rounded-full px-3 py-1.5 text-xs font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+                  >
+                    Change quiz
+                  </button>
                 </div>
                 <h1 id="question-heading" ref={headingRef} tabIndex={-1} data-testid="text-question" className="font-display mt-4 text-[1.6rem] font-semibold leading-[1.2] tracking-tight outline-none sm:text-[2.1rem]">
                   {q.question}
@@ -279,8 +386,13 @@ export default function Home() {
                         disabled={locked}
                         onClick={() => setSelected(o.id)}
                         data-testid={`button-option-${i}`}
-                        className={`group flex min-h-[64px] items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left text-[15px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/35 disabled:cursor-default ${tone}`}
+                        className={`group relative flex min-h-[64px] items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left text-[15px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/35 disabled:cursor-default ${tone}`}
                       >
+                        {result?.correct && isCorrect && (
+                          <span aria-hidden className="pointer-events-none absolute -right-2 -top-2 text-[hsl(var(--ok))] anim-celebrate">
+                            <Sparkles className="h-5 w-5" />
+                          </span>
+                        )}
                         <span aria-hidden className={`font-mono flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm transition-colors ${
                           isCorrect ? 'bg-[hsl(var(--ok))] text-white' : isWrongPick ? 'bg-[hsl(var(--bad))] text-white' : isSel ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:bg-foreground group-hover:text-background'
                         }`}>
@@ -312,7 +424,7 @@ export default function Home() {
 
                 <div aria-live="polite" className="mt-6">
                   {result && (
-                    <div key={feedbackKey} data-testid="status-feedback" className={`anim-rise flex items-start gap-3 rounded-2xl px-4 py-3 ${result.correct ? 'bg-[hsl(var(--ok))] text-white' : 'bg-foreground text-background'}`}>
+                    <div key={feedbackKey} data-testid="status-feedback" className={`anim-rise flex items-start gap-3 rounded-2xl px-4 py-3 ${result.correct ? 'bg-[hsl(var(--ok))] text-white' : 'bg-[hsl(var(--bad))] text-white'}`}>
                       <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20">
                         {result.correct ? <Check className="h-4 w-4" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
                       </span>
@@ -340,7 +452,6 @@ export default function Home() {
                     {explain.isSuccess && (
                       <>
                         <p data-testid="text-explanation" className="font-display whitespace-pre-line text-[17px] leading-relaxed">{explain.data.explanation}</p>
-                        <p className="mt-3 inline-flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground"><Sparkles className="h-3 w-3" aria-hidden /> explained by {explain.data.model}</p>
                       </>
                     )}
                     {explain.isError && (
